@@ -4,10 +4,8 @@ import (
 	"github.com/ChainSafe/chainbridge-core/chains/evm/cli/account"
 	"github.com/ChainSafe/chainbridge-core/chains/evm/cli/admin"
 	"github.com/ChainSafe/chainbridge-core/chains/evm/cli/bridge"
-	"github.com/ChainSafe/chainbridge-core/chains/evm/cli/centrifuge"
 	"github.com/ChainSafe/chainbridge-core/chains/evm/cli/deploy"
 	"github.com/ChainSafe/chainbridge-core/chains/evm/cli/erc20"
-	"github.com/ChainSafe/chainbridge-core/chains/evm/cli/erc721"
 	"github.com/ChainSafe/chainbridge-core/chains/evm/cli/logger"
 	"github.com/ChainSafe/chainbridge-core/chains/evm/cli/utils"
 	"github.com/spf13/cobra"
@@ -79,12 +77,6 @@ func init() {
 
 	// erc20
 	EvmRootCLI.AddCommand(erc20.ERC20Cmd)
-
-	// erc721
-	EvmRootCLI.AddCommand(erc721.ERC721Cmd)
-
-	// centrifuge
-	EvmRootCLI.AddCommand(centrifuge.CentrifugeCmd)
 
 	// account
 	EvmRootCLI.AddCommand(account.AccountRootCMD)

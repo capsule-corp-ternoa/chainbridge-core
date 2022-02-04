@@ -9,8 +9,6 @@ import (
 	"github.com/ChainSafe/chainbridge-core/chains/evm/calls"
 	"github.com/ChainSafe/chainbridge-core/chains/evm/calls/contracts/bridge"
 	"github.com/ChainSafe/chainbridge-core/chains/evm/calls/contracts/erc20"
-	"github.com/ChainSafe/chainbridge-core/chains/evm/calls/contracts/erc721"
-	"github.com/ChainSafe/chainbridge-core/chains/evm/calls/contracts/generic"
 	"github.com/ChainSafe/chainbridge-core/chains/evm/calls/evmclient"
 	evmgaspricer "github.com/ChainSafe/chainbridge-core/chains/evm/calls/evmgaspricer"
 	"github.com/ChainSafe/chainbridge-core/chains/evm/calls/evmtransaction"
@@ -51,16 +49,10 @@ var (
 	BridgeAddress    string
 	DeployAll        bool
 	DomainId         uint8
-	GenericHandler   bool
 	Erc20            bool
 	Erc20Handler     bool
 	Erc20Name        string
 	Erc20Symbol      string
-	Erc721           bool
-	Erc721Handler    bool
-	Erc721Name       string
-	Erc721Symbol     string
-	Erc721BaseURI    string
 	Fee              uint64
 	RelayerThreshold uint64
 	Relayers         []string
@@ -75,12 +67,6 @@ func BindDeployEVMFlags(cmd *cobra.Command) {
 	cmd.Flags().BoolVar(&Erc20Handler, "erc20-handler", false, "Deploy ERC20 handler")
 	cmd.Flags().StringVar(&Erc20Name, "erc20-name", "", "ERC20 contract name")
 	cmd.Flags().StringVar(&Erc20Symbol, "erc20-symbol", "", "ERC20 contract symbol")
-	cmd.Flags().BoolVar(&Erc721, "erc721", false, "Deploy ERC721")
-	cmd.Flags().BoolVar(&Erc721Handler, "erc721-handler", false, "Deploy ERC721 handler")
-	cmd.Flags().StringVar(&Erc721Name, "erc721-name", "", "ERC721 contract name")
-	cmd.Flags().StringVar(&Erc721Symbol, "erc721-symbol", "", "ERC721 contract symbol")
-	cmd.Flags().StringVar(&Erc721BaseURI, "erc721-base-uri", "", "ERC721 base URI")
-	cmd.Flags().BoolVar(&GenericHandler, "generic-handler", false, "Deploy generic handler")
 	cmd.Flags().Uint64Var(&Fee, "fee", 0, "Fee to be taken when making a deposit (in ETH, decimals are allowed)")
 	cmd.Flags().StringSliceVar(&Relayers, "relayers", []string{}, "List of initial relayers")
 	cmd.Flags().Uint64Var(&RelayerThreshold, "relayer-threshold", 1, "Number of votes required for a proposal to pass")
@@ -106,25 +92,9 @@ func ValidateDeployFlags(cmd *cobra.Command, args []string) error {
 			}
 			Deployments = append(Deployments, "erc20-handler")
 		}
-		if Erc721Handler {
-			if !Bridge {
-				flags.MarkFlagsAsRequired(cmd, "bridge-address")
-			}
-			Deployments = append(Deployments, "erc721-handler")
-		}
-		if GenericHandler {
-			if !Bridge {
-				flags.MarkFlagsAsRequired(cmd, "bridge-address")
-			}
-			Deployments = append(Deployments, "generic-handler")
-		}
 		if Erc20 {
 			flags.MarkFlagsAsRequired(cmd, "erc20-symbol", "erc20-name")
 			Deployments = append(Deployments, "erc20")
-		}
-		if Erc721 {
-			flags.MarkFlagsAsRequired(cmd, "erc721-name", "erc721-symbol", "erc721-base-uri")
-			Deployments = append(Deployments, "erc721")
 		}
 	}
 
@@ -217,38 +187,6 @@ func DeployCLI(cmd *cobra.Command, args []string, txFabric calls.TxFabric, gasPr
 				return err
 			}
 			deployedContracts["erc20Handler"] = erc20HandlerAddr.String()
-		case "erc721":
-			log.Debug().Msgf("deploying ERC721..")
-			erc721Contract := erc721.NewErc721Contract(ethClient, common.Address{}, t)
-			erc721Addr, err := erc721Contract.DeployContract(Erc721Name, Erc721Symbol, Erc721BaseURI)
-			if err != nil {
-				log.Error().Err(fmt.Errorf("ERC721 deploy failed: %w", err))
-				return err
-			}
-			deployedContracts["erc721Token"] = erc721Addr.String()
-		case "erc721-handler":
-			log.Debug().Msgf("deploying ERC721 handler..")
-			erc721HandlerContract := erc721.NewERC721HandlerContract(ethClient, common.Address{}, t)
-			erc721HandlerAddr, err := erc721HandlerContract.DeployContract(BridgeAddr)
-			if err != nil {
-				log.Error().Err(fmt.Errorf("ERC721 handler deploy failed: %w", err))
-				return err
-			}
-			deployedContracts["erc721Handler"] = erc721HandlerAddr.String()
-		case "generic-handler":
-			log.Debug().Msgf("deploying generic handler..")
-			emptyAddr := common.Address{}
-			if BridgeAddr == emptyAddr {
-				log.Error().Err(errors.New("bridge flag or bridge-address param should be set for contracts Deployments"))
-				return err
-			}
-			genericHandlerContract := generic.NewGenericHandlerContract(ethClient, common.Address{}, t)
-			genericHandlerAddr, err := genericHandlerContract.DeployContract(BridgeAddr)
-			if err != nil {
-				log.Error().Err(fmt.Errorf("Generic handler deploy failed: %w", err))
-				return err
-			}
-			deployedContracts["genericHandler"] = genericHandlerAddr.String()
 		}
 	}
 	fmt.Printf(`
@@ -259,20 +197,11 @@ Bridge: %s
 ERC20 Token: %s
 ---------------------------------------------------------
 ERC20 Handler: %s
----------------------------------------------------------
-ERC721 Token: %s
----------------------------------------------------------
-ERC721 Handler: %s
----------------------------------------------------------
-Generic Handler: %s
 =========================================================
 	`,
 		deployedContracts["bridge"],
 		deployedContracts["erc20Token"],
 		deployedContracts["erc20Handler"],
-		deployedContracts["erc721Token"],
-		deployedContracts["erc721Handler"],
-		deployedContracts["genericHandler"],
 	)
 	return nil
 }
